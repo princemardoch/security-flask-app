@@ -1,15 +1,19 @@
 # security-flask-app
 
-## Dans votre application Flask
+--
 
-### 1. En-têtes de sécurité HTTP
-Utilisez Flask-Talisman pour configurer facilement tous les en-têtes de sécurité :
+# Security for Flask App
+
+## In Your Flask App
+
+### 1. HTTP Security Headers
+Use Flask-Talisman to easily set up all security headers:
 
 ```python
 from flask_talisman import Talisman
 
 app = Flask(__name__)
-# Configuration basique avec CSP et tous les en-têtes de sécurité
+# Basic setup with CSP and all security headers
 Talisman(app, 
          content_security_policy={
              'default-src': '\'self\'',
@@ -19,8 +23,8 @@ Talisman(app,
          force_https=True)
 ```
 
-### 2. Protection CSRF
-Même avec JWT, ajoutez une protection CSRF :
+### 2. CSRF Protection
+Even with JWT, add CSRF protection:
 
 ```python
 from flask_wtf.csrf import CSRFProtect
@@ -28,21 +32,21 @@ from flask_wtf.csrf import CSRFProtect
 csrf = CSRFProtect(app)
 ```
 
-### 3. Configuration des cookies JWT
+### 3. JWT Cookie Settings
 ```python
 app.config['JWT_COOKIE_SECURE'] = True
 app.config['JWT_COOKIE_SAMESITE'] = 'Strict'
 app.config['JWT_COOKIE_HTTPONLY'] = True
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Courte durée de vie
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Short life
 ```
 
-### 4. Désactiver le mode debug en production
+### 4. Turn Off Debug Mode in Production
 ```python
 app.config['DEBUG'] = False
 app.config['TESTING'] = False
 ```
 
-### 5. Logging sécurisé
+### 5. Safe Logging
 ```python
 import logging
 from logging.handlers import RotatingFileHandler
@@ -51,7 +55,7 @@ handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 
-# Logging des tentatives d'authentification, erreurs, etc.
+# Log login attempts, errors, etc.
 @app.after_request
 def log_after_request(response):
     app.logger.info('%s %s %s %s %s', request.remote_addr, request.method, 
@@ -59,9 +63,9 @@ def log_after_request(response):
     return response
 ```
 
-## Configuration Nginx
+## Nginx Setup
 
-### 1. Configuration HTTPS
+### 1. HTTPS Setup
 ```nginx
 server {
     listen 443 ssl http2;
@@ -70,30 +74,30 @@ server {
     ssl_certificate /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
     
-    # Protocoles et chiffrements sécurisés
+    # Secure protocols and ciphers
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
     
-    # HSTS (si pas déjà configuré via Flask-Talisman)
+    # HSTS (if not set in Flask-Talisman)
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
     
-    # Autres en-têtes de sécurité (redondance avec Flask-Talisman mais utile comme fallback)
+    # Other security headers (backup if Flask-Talisman fails)
     add_header X-Content-Type-Options "nosniff";
     add_header X-Frame-Options "SAMEORIGIN";
     add_header X-XSS-Protection "1; mode=block";
     
-    # Redirection des requêtes vers l'app Flask
+    # Send requests to Flask app
     location / {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        # Cacher les détails du serveur
+        # Hide server details
         proxy_hide_header Server;
     }
 }
 
-# Redirection de HTTP vers HTTPS
+# Redirect HTTP to HTTPS
 server {
     listen 80;
     server_name example.com;
@@ -101,15 +105,15 @@ server {
 }
 ```
 
-### 2. Rate limiting avec Nginx
+### 2. Rate Limiting with Nginx
 ```nginx
-# Définir une zone de limitation
+# Set a limit zone
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
 
 server {
     # ...
     
-    # Appliquer le rate limiting sur les endpoints sensibles
+    # Apply rate limiting to sensitive endpoints
     location /api/ {
         limit_req zone=api_limit burst=20 nodelay;
         proxy_pass http://127.0.0.1:5000;
@@ -117,29 +121,29 @@ server {
 }
 ```
 
-## Configuration du système
+## System Setup
 
-### 1. Gestion des secrets avec variables d'environnement
-Créez un fichier `.env` pour votre application (ne le versionnez pas) ou utilisez un gestionnaire de secrets, puis :
+### 1. Manage Secrets with Environment Variables
+Create a `.env` file for your app (don’t version it) or use a secret manager, then:
 
 ```python
-# Dans votre app Flask
+# In your Flask app
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # Charger les variables d'environnement
+load_dotenv()  # Load environment variables
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ```
 
-### 2. Mise à jour régulière des dépendances
-Vérifiez vos dépendances pour des vulnérabilités :
+### 2. Update Dependencies Regularly
+Check your dependencies for vulnerabilities:
 ```bash
 pip install safety
 safety check
 ```
 
-### 3. Pare-feu et monitoring
-- Configurer UFW (Uncomplicated Firewall) sur votre serveur
-- Surveiller les logs avec un outil comme Datadog, Sentry ou ELK Stack
+### 3. Firewall and Monitoring
+- Set up UFW (Uncomplicated Firewall) on your server
+- Watch logs with tools like Datadog, Sentry, or ELK Stack
 
-Ces implémentations couvrent l'essentiel des mesures de sécurité recommandées. Souhaitez-vous des détails supplémentaires sur l'un de ces aspects en particulier ?
+These steps cover the main recommended security measures. Do you want more details on any part?
