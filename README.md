@@ -1,7 +1,5 @@
 # security-flask-app
 
---
-
 # Security for Flask App
 
 ## In Your Flask App
